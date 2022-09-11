@@ -7,6 +7,10 @@ const Filter = require("bad-words");
 const app = express();
 const server = http.createServer(app);
 const io = socketio(server);
+const {
+  generateMessage,
+  generateLocationMessage,
+} = require("./utils/messages");
 
 const PORT = process.env.PORT || 3000;
 const publicDirectoryPath = path.join(__dirname, "../public");
@@ -18,10 +22,10 @@ io.on("connection", (socket) => {
   console.log("New WebSocket connection");
 
   //send a message to the current new user
-  socket.emit("message", "Hello client!");
+  socket.emit("message", generateMessage("Welcome!"));
 
   //send a message for all users beside the user tht just connected
-  socket.broadcast.emit("message", "A new user has joined!");
+  socket.broadcast.emit("message", generateMessage("A new user has joined!"));
 
   //Listen to messages from the client and send that message to all
   socket.on("clientMessage", (message, sendAck) => {
@@ -29,20 +33,22 @@ io.on("connection", (socket) => {
     if (filter.isProfane(message)) {
       return sendAck("Profanity is not allowed");
     }
-    io.emit("message", message);
+    io.emit("message", generateMessage(message));
     sendAck();
   });
 
   //Listen to disconnect from the client and send that message to all
   socket.on("disconnect", () => {
-    io.emit("message", "A user has left!");
+    io.emit("message", generateMessage("A user has left!"));
   });
 
   //Listen to location from the client and send it to all
   socket.on("sendLocation", (coords, callback) => {
     socket.broadcast.emit(
       "locationMessage",
-      `https://google.com/maps?q=${coords.latitude},${coords.longitude}`
+      generateLocationMessage(
+        `https://google.com/maps?q=${coords.latitude},${coords.longitude}`
+      )
     );
     callback();
   });
