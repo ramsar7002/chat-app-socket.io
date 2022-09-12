@@ -1,68 +1,72 @@
 const socket = io();
-// const Mustache = require('mus');
 
-//Elements
 const $messageForm = document.querySelector("#message-form");
 const $messageFormInput = $messageForm.querySelector("input");
 const $messageFormButton = $messageForm.querySelector("button");
-const $sendLocation = document.querySelector("#send-location");
+const $buttonSendLocation = document.querySelector("#send-location");
 const $messages = document.querySelector("#messages");
 
-//templates
 const messageTemplate = document.querySelector("#message-template").innerHTML;
-const locationTemplate = document.querySelector("#location-template").innerHTML;
+const urlTemplate = document.querySelector("#url-template").innerHTML;
+const sideBarTemplate = document.querySelector("#sidebar-template").innerHTML;
+
+const { username, room } = Qs.parse(location.search, {
+  ignoreQueryPrefix: true,
+});
 
 socket.on("message", (message) => {
-  if (!message) return;
-
-  const html = Mustache.render(messageTemplate, {
+  const htmlFromTemplate = Mustache.render(messageTemplate, {
+    username: message.username,
     message: message.text,
-    createdAt: moment(message.createdAt).format("HH:mm"),
+    createdAt: moment(message.createdAt).format("h:mm a"),
   });
-  $messages.insertAdjacentHTML("beforeend", html);
+  $messages.insertAdjacentHTML("beforeend", htmlFromTemplate);
 });
 
-socket.on("locationMessage", (location) => {
-  const html = Mustache.render(locationTemplate, {
-    location: location.text,
-    createdAt: moment(location.createdAt).format("HH:mm"),
+socket.on("locationMessage", (locationMessage) => {
+  const htmlFromTemplate = Mustache.render(urlTemplate, {
+    username: locationMessage.username,
+    url: locationMessage.location,
+    createdAt: moment(locationMessage.createdAt).format("h:mm a"),
   });
-  $messages.insertAdjacentHTML("beforeend", html);
+  $messages.insertAdjacentHTML("beforeend", htmlFromTemplate);
 });
 
-//Send a message and get ack
 $messageForm.addEventListener("submit", (e) => {
   e.preventDefault();
-  //disable the form
-  $messageFormButton.setAttribute("disabled", "disabled");
-  $messageFormInput;
-  const inputMessage = e.target.elements.message.value;
-  socket.emit("clientMessage", inputMessage, (error) => {
-    //enable the form
-    $messageFormButton.removeAttribute("disabled");
+  // $messageFormButton.setAttribute('disabled', 'disabled')
+  $messageFormButton.disabled = true;
+  const message = e.target.elements.message.value;
+  socket.emit("messageSent", message, (error) => {
+    // $messageFormButton.removeAttribute('disabled')
+    $messageFormButton.disabled = false;
     $messageFormInput.value = "";
     $messageFormInput.focus();
-    console.log(error ? error : "The message was delivered!");
+    if (error) {
+      return error;
+    }
   });
 });
 
-//Send location and get ack
-$sendLocation.addEventListener("click", (e) => {
+$buttonSendLocation.addEventListener("click", () => {
   if (!navigator.geolocation) {
-    return alert("Not supported");
+    return alert("Geolocation is not supported by your browser");
   }
-  $sendLocation.setAttribute("disabled", "disabled");
+  $buttonSendLocation.disabled = true;
   navigator.geolocation.getCurrentPosition((position) => {
-    socket.emit(
-      "sendLocation",
-      {
-        latitude: position.coords.latitude,
-        longitude: position.coords.longitude,
-      },
-      (error) => {
-        $sendLocation.removeAttribute("disabled");
-        console.log(error ? error : "Location shared!");
-      }
-    );
+    const location = {
+      latitude: position.coords.latitude,
+      longitude: position.coords.longitude,
+    };
+    socket.emit("sendLocation", location, (acknowledged) => {
+      $buttonSendLocation.disabled = false;
+    });
   });
+});
+
+socket.emit("join", { username, room }, (error) => {
+  if (error) {
+    alert(error);
+    location.href = "/";
+  }
 });
