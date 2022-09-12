@@ -55,9 +55,15 @@ const getUser = (id) => {
 };
 
 //get users in room
-const getUsersInRoom = ({ room }) => {
+const getUsersInRoom = (room) => {
   const usersInRoom = users.filter((user) => user.room === room);
-  return usersInRoom.length !== 0 ? usersInRoom : undefined;
+  if (!usersInRoom) return undefined;
+  usersInRoom.forEach(
+    (user) =>
+      (user.username =
+        user.username?.charAt(0).toUpperCase() + user.username.slice(1))
+  );
+  return usersInRoom;
 };
 
 module.exports = { addUser, removeUser, getUser, getUsersInRoom };

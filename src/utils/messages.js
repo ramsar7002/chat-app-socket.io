@@ -1,6 +1,6 @@
 const generateMessage = (username, text) => {
   return {
-    username,
+    username: username?.charAt(0).toUpperCase() + username?.slice(1),
     text,
     createdAt: new Date().getTime(),
   };
@@ -8,7 +8,7 @@ const generateMessage = (username, text) => {
 
 const generateLocationMessage = (username, location) => {
   return {
-    username,
+    username: username?.charAt(0).toUpperCase() + username.slice(1),
     location: location,
     createdAt: new Date().getTime(),
   };
